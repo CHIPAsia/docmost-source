@@ -32,5 +32,5 @@ jobs:
         with:
           context: . # Directory of the Dockerfile (defaults to repo root)
           push: ${{ github.event_name != 'pull_request' }} # Only push on 'push' event
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/#{{ DOCKERHUB_REPO }}:latest
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/${{ DOCKERHUB_REPO }}:latest
           platforms: linux/amd64,linux/arm64
