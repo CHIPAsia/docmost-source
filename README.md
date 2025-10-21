@@ -78,7 +78,8 @@ $ pnpm nx run server:migration:latest
 
 5) Start Front-end
 ```
-$ docker compose -f docker-compose.db.yml up
+# run in development watch mode
+$ pnpm nx run client:dev
 ```
 
 ## Thanks
