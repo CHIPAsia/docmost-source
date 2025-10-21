@@ -48,6 +48,39 @@ All files in the following directories are licensed under the Docmost Enterprise
 
 See the [development documentation](https://docmost.com/docs/self-hosting/development)
 
+## CHIP-Notes Development:
+
+Run this command to start CHIP Notes local development:
+
+1) Start DB 
+```
+$ docker compose -f docker-compose.db.yml up
+```
+
+2) Build the editor package
+```
+$ pnpm nx run @docmost/editor-ext:build
+```
+
+3) Start Backend
+```
+# run in watch mode
+$ pnpm nx run server:start:dev
+
+# development
+$ pnpm nx run server:start
+```
+
+4) DB Migration  
+```
+$ pnpm nx run server:migration:latest
+```
+
+5) Start Front-end
+```
+$ docker compose -f docker-compose.db.yml up
+```
+
 ## Thanks
 Special thanks to;
 
