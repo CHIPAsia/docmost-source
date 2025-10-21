@@ -1,8 +1,6 @@
 services:
   docmost:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: docmost/docmost:latest
 
     depends_on:
       - db
