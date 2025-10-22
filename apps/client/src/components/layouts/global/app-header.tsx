@@ -1,9 +1,9 @@
 import { Badge, Group, Text, Tooltip } from "@mantine/core";
 import classes from "./app-header.module.css";
-import React from "react";
 import TopMenu from "@/components/layouts/global/top-menu.tsx";
 import { Link } from "react-router-dom";
 import APP_ROUTE from "@/lib/app-route.ts";
+import chipLogo from '@/assets/Gradient Primary.svg';
 import { useAtom } from "jotai";
 import {
   desktopSidebarAtom,
@@ -14,6 +14,8 @@ import SidebarToggle from "@/components/ui/sidebar-toggle-button.tsx";
 import { useTranslation } from "react-i18next";
 import useTrial from "@/ee/hooks/use-trial.tsx";
 import { isCloud } from "@/lib/config.ts";
+
+
 import {
   SearchControl,
   SearchMobileControl,
@@ -75,11 +77,11 @@ export function AppHeader() {
           <Text
             size="lg"
             fw={600}
-            style={{ cursor: "pointer", userSelect: "none" }}
+            style={{ cursor: "pointer", userSelect: "none", display: 'flex', alignItems: 'center' }}
             component={Link}
             to="/home"
           >
-            Docmost
+            <img className="text-center" alt="editor" src={chipLogo} width="30%" />
           </Text>
 
           <Group ml={50} gap={5} className={classes.links} visibleFrom="sm">
