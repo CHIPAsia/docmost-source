@@ -1,23 +1,38 @@
 services:
   docmost:
-    image: docmost/docmost:latest
-
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
     depends_on:
       - db
       - redis
     environment:
-      APP_URL: 'http://localhost:3000'
+      APP_URL: ${APP_URL}
       APP_SECRET: ${APP_SECRET}
-      DATABASE_URL: 'postgresql://docmost:STRONG_DB_PASSWORD@db:5432/docmost?schema=public'
-      REDIS_URL: 'redis://redis:6379'
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_URL: ${REDIS_URL}
+
+      # Enable polling for file changes (useful for some systems)
+      CHOKIDAR_USEPOLLING: true
+      WATCHPACK_POLLING: true
     ports:
       - "3000:3000"
+      - "5173:5173"    # Vite dev server (client)
+      - "3001:3001"    # Collaboration server
     restart: unless-stopped
     volumes:
+      # Mount source code for hot reload
+      - .:/app
+      # Exclude node_modules to avoid conflicts
+      - /app/node_modules
+      - /app/apps/client/node_modules
+      - /app/apps/server/node_modules
+      - /app/packages/editor-ext/node_modules
+      # Mount data directory
       - docmost:/app/data/storage
 
   db:
-    image: postgres:16-alpine
+    image: postgres:18-alpine
     environment:
       POSTGRES_DB: docmost
       POSTGRES_USER: docmost
@@ -27,7 +42,7 @@ services:
       - db_data:/var/lib/postgresql/data
 
   redis:
-    image: redis:7.2-alpine
+    image: redis:8.2-alpine
     restart: unless-stopped
     volumes:
       - redis_data:/data
