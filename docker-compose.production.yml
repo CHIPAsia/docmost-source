@@ -1,0 +1,72 @@
+services:
+  docmost:
+    image: wzul/docmost-chip:latest
+    container_name: docmost-app
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    environment:
+      -  DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+    depends_on:
+      - postgres
+      - redis
+    volumes:
+      - docmost_uploads:/app/uploads
+      - docmost_logs:/app/logs
+      - ./docmost_data_storage:/app/data/storage
+    networks:
+      - docmost-network
+
+  postgres:
+    image: postgres:18-alpine
+    container_name: docmost-postgres
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - docmost-network
+
+  redis:
+    image: redis:8.2-alpine
+    container_name: docmost-redis
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    networks:
+      - docmost-network
+
+  nginx:
+    image: nginx:alpine
+    container_name: docmost-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - APP_URL=${APP_URL}
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/templates/nginx.conf.template:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - nginx_logs:/var/log/nginx
+    command: /bin/sh -c "export DOMAIN_NAME=$$(echo $$APP_URL | sed 's|https\\?://||' | cut -d/ -f1 | cut -d: -f1) && envsubst '$$APP_URL $$DOMAIN_NAME' < /etc/nginx/templates/nginx.conf.template > /etc/nginx/nginx.conf && nginx -g 'daemon off;'"
+    depends_on:
+      - docmost
+    networks:
+      - docmost-network
+
+volumes:
+  postgres_data:
+  redis_data:
+  docmost_uploads:
+  docmost_logs:
+  nginx_logs:
+
+networks:
+  docmost-network:
+    driver: bridge 
