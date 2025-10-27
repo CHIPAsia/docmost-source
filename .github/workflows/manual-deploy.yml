@@ -82,19 +82,18 @@ jobs:
           SERVER_USER: ${{ secrets.SERVER_USER }}
           SERVER_HOST: ${{ secrets.SERVER_HOST }}
         run: |
-          TOTP_CODE=$(oathtool --totp -b "$TOTP_SECRET")
-          
           echo "Connecting to server and deploying..."
           
           # Deploy commands on the server
-          expect << EOF
+          expect << EXPECT_EOF
           set timeout 60
+          set totp_code [exec oathtool --totp -b "$TOTP_SECRET"]
           
-          spawn ssh -i ~/.ssh/server_key -o StrictHostKeyChecking=no -o ProxyCommand="ssh -i ~/.ssh/proxy_key -o StrictHostKeyChecking=no $PROXY_USER@$PROXY_HOST" $SERVER_USER@$SERVER_HOST "cd docmost && sudo docker compose pull && sudo docker compose up -d"
+          spawn sh -c "ssh -i ~/.ssh/server_key -o StrictHostKeyChecking=no -o ProxyCommand='ssh -i ~/.ssh/proxy_key -o StrictHostKeyChecking=no $PROXY_USER@$PROXY_HOST' $SERVER_USER@$SERVER_HOST 'cd docmost && sudo docker compose pull && sudo docker compose up -d'"
           
           expect {
               "Verification code: " {
-                  send "$TOTP_CODE\r"
+                  send "\$totp_code\r"
                   exp_continue
               }
               eof
@@ -102,7 +101,7 @@ jobs:
           
           catch wait result
           exit [lindex \$result 3]
-          EOF
+          EXPECT_EOF
 
       - name: Cleanup SSH keys
         if: always()
