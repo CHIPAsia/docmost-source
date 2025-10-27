@@ -60,7 +60,7 @@ jobs:
           set timeout 30
           spawn ssh -i ~/.ssh/proxy_key -o StrictHostKeyChecking=no \$PROXY_USER@\$PROXY_HOST "\$@"
           expect {
-              "Verification code: " {
+              -re "Verification code: " {
                   send "\$TOTP_CODE\r"
                   exp_continue
               }
@@ -92,7 +92,7 @@ jobs:
           spawn sh -c "ssh -i ~/.ssh/server_key -o StrictHostKeyChecking=no -o ProxyCommand='ssh -i ~/.ssh/proxy_key -o StrictHostKeyChecking=no $PROXY_USER@$PROXY_HOST' $SERVER_USER@$SERVER_HOST 'cd docmost && sudo docker compose pull && sudo docker compose up -d'"
           
           expect {
-              "Verification code: " {
+              -re "Verification code: " {
                   send "\$totp_code\r"
                   exp_continue
               }
