@@ -70,10 +70,6 @@ jobs:
           SCRIPT
           chmod +x ssh_with_totp.sh
 
-      - name: Test proxy connection
-        run: |
-          ./ssh_with_totp.sh "echo 'Proxy connection successful'"
-
       - name: Deploy to server through proxy
         env:
           TOTP_SECRET: ${{ secrets.PROXY_TOTP_SECRET }}
@@ -86,15 +82,24 @@ jobs:
           
           # Deploy commands on the server
           expect << EXPECT_EOF
-          set timeout 60
+          set timeout 300
           set totp_code [exec oathtool --totp -b "$TOTP_SECRET"]
           
-          spawn sh -c "ssh -tt -i ~/.ssh/server_key -o StrictHostKeyChecking=no -o ProxyCommand='ssh -tt -i ~/.ssh/proxy_key -o StrictHostKeyChecking=no $PROXY_USER@$PROXY_HOST' $SERVER_USER@$SERVER_HOST 'cd docmost && sudo docker compose pull && sudo docker compose up -d'"
+          spawn ssh -i ~/.ssh/server_key -o StrictHostKeyChecking=no -o ProxyCommand="ssh -i ~/.ssh/proxy_key -o StrictHostKeyChecking=no $PROXY_USER@$PROXY_HOST" $SERVER_USER@$SERVER_HOST
           
           expect {
               -re "Verification code: " {
                   send "\$totp_code\r"
                   exp_continue
+              }
+              -re "\$ " {
+                  send "cd docmost && sudo docker compose pull && sudo docker compose up -d\r"
+                  expect -re "\$ "
+                  send "exit\r"
+              }
+              timeout {
+                  puts "Connection timeout"
+                  exit 1
               }
               eof
           }
