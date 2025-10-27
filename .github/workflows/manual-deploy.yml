@@ -80,12 +80,13 @@ jobs:
         run: |
           echo "Connecting to server and deploying..."
           
-          # Deploy commands on the server
+          # Deploy commands on the server  
           expect << EXPECT_EOF
           set timeout 300
           set totp_code [exec oathtool --totp -b "$TOTP_SECRET"]
+          set proxy_cmd "ssh -tt -i ~/.ssh/proxy_key -o StrictHostKeyChecking=no $PROXY_USER@$PROXY_HOST"
           
-          spawn bash -c "ssh -i ~/.ssh/server_key -o StrictHostKeyChecking=no -o ProxyCommand='ssh -i ~/.ssh/proxy_key -o StrictHostKeyChecking=no $PROXY_USER@$PROXY_HOST' $SERVER_USER@$SERVER_HOST"
+          spawn ssh -tt -i ~/.ssh/server_key -o StrictHostKeyChecking=no -o ProxyCommand=\$proxy_cmd $SERVER_USER@$SERVER_HOST
           
           expect {
               -re "Verification code: " {
