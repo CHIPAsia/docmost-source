@@ -94,7 +94,6 @@ jobs:
           
           expect {
               -re "Verification code: " {
-                  puts "Sending TOTP code: \$totp_code"
                   send "\$totp_code\r"
                   exp_continue
               }
