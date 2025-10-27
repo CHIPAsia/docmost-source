@@ -79,17 +79,22 @@ jobs:
           SERVER_HOST: ${{ secrets.SERVER_HOST }}
         run: |
           echo "Connecting to server and deploying..."
+          echo "Current time: $(date)"
           
           # Deploy commands on the server  
           expect << EXPECT_EOF
           set timeout 300
+          set current_time [exec date]
+          puts "Generating TOTP at: \$current_time"
           set totp_code [exec oathtool --totp -b "$TOTP_SECRET"]
+          puts "Generated TOTP code (timing sync check)"
           set proxy_cmd "ssh -tt -i ~/.ssh/proxy_key -o StrictHostKeyChecking=no $PROXY_USER@$PROXY_HOST"
           
           spawn ssh -tt -i ~/.ssh/server_key -o StrictHostKeyChecking=no -o ProxyCommand=\$proxy_cmd $SERVER_USER@$SERVER_HOST
           
           expect {
               -re "Verification code: " {
+                  puts "Sending TOTP code: \$totp_code"
                   send "\$totp_code\r"
                   exp_continue
               }
