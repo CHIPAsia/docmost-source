@@ -58,7 +58,7 @@ jobs:
           
           expect << EXPECT_SCRIPT
           set timeout 30
-          spawn ssh -i ~/.ssh/proxy_key -o StrictHostKeyChecking=no \$PROXY_USER@\$PROXY_HOST "\$@"
+          spawn ssh -tt -i ~/.ssh/proxy_key -o StrictHostKeyChecking=no \$PROXY_USER@\$PROXY_HOST "\$@"
           expect {
               -re "Verification code: " {
                   send "\$TOTP_CODE\r"
@@ -89,7 +89,7 @@ jobs:
           set timeout 60
           set totp_code [exec oathtool --totp -b "$TOTP_SECRET"]
           
-          spawn sh -c "ssh -i ~/.ssh/server_key -o StrictHostKeyChecking=no -o ProxyCommand='ssh -i ~/.ssh/proxy_key -o StrictHostKeyChecking=no $PROXY_USER@$PROXY_HOST' $SERVER_USER@$SERVER_HOST 'cd docmost && sudo docker compose pull && sudo docker compose up -d'"
+          spawn sh -c "ssh -tt -i ~/.ssh/server_key -o StrictHostKeyChecking=no -o ProxyCommand='ssh -tt -i ~/.ssh/proxy_key -o StrictHostKeyChecking=no $PROXY_USER@$PROXY_HOST' $SERVER_USER@$SERVER_HOST 'cd docmost && sudo docker compose pull && sudo docker compose up -d'"
           
           expect {
               -re "Verification code: " {
