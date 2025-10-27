@@ -88,19 +88,17 @@ jobs:
           puts "Generating TOTP at: \$current_time"
           set totp_code [exec oathtool --totp -b "$TOTP_SECRET"]
           puts "Generated TOTP code (timing sync check)"
-          set proxy_cmd "ssh -tt -i ~/.ssh/proxy_key -o StrictHostKeyChecking=no $PROXY_USER@$PROXY_HOST"
           
-          spawn ssh -tt -i ~/.ssh/server_key -o StrictHostKeyChecking=no -o ProxyCommand=\$proxy_cmd $SERVER_USER@$SERVER_HOST
+          spawn sh -c {ssh -tt -i ~/.ssh/server_key -o StrictHostKeyChecking=no -o 'ProxyCommand=ssh -tt -i ~/.ssh/proxy_key -o StrictHostKeyChecking=no $PROXY_USER@$PROXY_HOST' $SERVER_USER@$SERVER_HOST 'cd docmost && sudo docker compose pull && sudo docker compose up -d'}
           
           expect {
               -re "Verification code: " {
-                  send "\$totp_code\r"
+                  puts "TOTP prompt detected, sending code..."
+                  send "\$totp_code"
+                  sleep 2
+                  send "\r"
+                  sleep 1
                   exp_continue
-              }
-              -re "\$ " {
-                  send "cd docmost && sudo docker compose pull && sudo docker compose up -d\r"
-                  expect -re "\$ "
-                  send "exit\r"
               }
               timeout {
                   puts "Connection timeout"
