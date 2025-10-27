@@ -85,7 +85,7 @@ jobs:
           set timeout 300
           set totp_code [exec oathtool --totp -b "$TOTP_SECRET"]
           
-          spawn ssh -i ~/.ssh/server_key -o StrictHostKeyChecking=no -o ProxyCommand="ssh -i ~/.ssh/proxy_key -o StrictHostKeyChecking=no $PROXY_USER@$PROXY_HOST" $SERVER_USER@$SERVER_HOST
+          spawn bash -c "ssh -i ~/.ssh/server_key -o StrictHostKeyChecking=no -o ProxyCommand='ssh -i ~/.ssh/proxy_key -o StrictHostKeyChecking=no $PROXY_USER@$PROXY_HOST' $SERVER_USER@$SERVER_HOST"
           
           expect {
               -re "Verification code: " {
