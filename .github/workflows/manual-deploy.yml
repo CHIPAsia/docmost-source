@@ -94,11 +94,20 @@ jobs:
           expect {
               -re "Verification code: " {
                   puts "TOTP prompt detected, sending code..."
-                  send "\$totp_code"
-                  sleep 2
+                  send -- "\$totp_code"
+                  sleep 0.5
                   send "\r"
-                  sleep 1
+                  puts "Enter key sent"
+                  sleep 2
                   exp_continue
+              }
+              -re "Password:" {
+                  puts "Password prompt detected"
+                  exp_continue
+              }
+              "Permission denied" {
+                  puts "ERROR: Authentication failed - TOTP may have expired or incorrect"
+                  exit 1
               }
               timeout {
                   puts "Connection timeout"
