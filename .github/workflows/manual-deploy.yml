@@ -48,16 +48,20 @@ jobs:
           PROXY_USER: ${{ secrets.PROXY_USER }}
           PROXY_HOST: ${{ secrets.PROXY_HOST }}
         run: |
-          cat > ssh_with_totp.sh << 'SCRIPT'
+          cat > ssh_with_totp.sh << SCRIPT
           #!/bin/bash
-          TOTP_CODE=$(oathtool --totp -b "$TOTP_SECRET")
+          TOTP_SECRET="$TOTP_SECRET"
+          PROXY_USER="$PROXY_USER"
+          PROXY_HOST="$PROXY_HOST"
           
-          expect << 'EXPECT_SCRIPT'
+          TOTP_CODE=\$(oathtool --totp -b "\$TOTP_SECRET")
+          
+          expect << EXPECT_SCRIPT
           set timeout 30
-          spawn ssh -i ~/.ssh/proxy_key -o StrictHostKeyChecking=no $PROXY_USER@$PROXY_HOST "$@"
+          spawn ssh -i ~/.ssh/proxy_key -o StrictHostKeyChecking=no \$PROXY_USER@\$PROXY_HOST "\$@"
           expect {
               "Verification code: " {
-                  send "$TOTP_CODE\r"
+                  send "\$TOTP_CODE\r"
                   exp_continue
               }
               eof
