@@ -1,0 +1,120 @@
+name: AWS SSM Session
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Configure AWS credentials
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+        run: |
+          mkdir -p ~/.aws
+          # Write credentials with restrictive permissions (600 = owner read/write only)
+          {
+            echo "[default]"
+            echo "aws_access_key_id = ${AWS_ACCESS_KEY_ID}"
+            echo "aws_secret_access_key = ${AWS_SECRET_ACCESS_KEY}"
+          } > ~/.aws/credentials
+          chmod 600 ~/.aws/credentials
+          
+          {
+            echo "[default]"
+            echo "region = ${AWS_REGION}"
+          } > ~/.aws/config
+          chmod 600 ~/.aws/config
+
+      - name: Detect architecture
+        id: arch
+        run: |
+          ARCH=$(uname -m)
+          echo "ARCH=${ARCH}" >> $GITHUB_OUTPUT
+          echo "Detected architecture: ${ARCH}"
+
+      - name: Install AWS CLI
+        run: |
+          ARCH="${{ steps.arch.outputs.ARCH }}"
+          if [ "$ARCH" = "aarch64" ] || [ "$ARCH" = "arm64" ]; then
+            curl "https://awscli.amazonaws.com/awscli-exe-linux-aarch64.zip" -o "awscliv2.zip"
+          else
+            curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+          fi
+          unzip awscliv2.zip
+          sudo ./aws/install
+          aws --version
+
+      - name: Install AWS Session Manager plugin
+        run: |
+          ARCH="${{ steps.arch.outputs.ARCH }}"
+          if [ "$ARCH" = "aarch64" ] || [ "$ARCH" = "arm64" ]; then
+            curl "https://s3.amazonaws.com/session-manager-downloads/plugin/latest/ubuntu_arm64/session-manager-plugin.deb" -o "/tmp/session-manager-plugin.deb"
+          else
+            curl "https://s3.amazonaws.com/session-manager-downloads/plugin/latest/ubuntu_64bit/session-manager-plugin.deb" -o "/tmp/session-manager-plugin.deb"
+          fi
+          sudo dpkg -i /tmp/session-manager-plugin.deb
+          session-manager-plugin --version
+
+      - name: Execute commands via SSM
+        env:
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+          SSM_TARGET: ${{ secrets.SSM_TARGET }}
+        run: |
+          # Execute commands on the remote instance
+          COMMAND_ID=$(aws ssm send-command \
+            --region "${AWS_REGION}" \
+            --instance-ids "${SSM_TARGET}" \
+            --document-name "AWS-RunShellScript" \
+            --parameters 'commands=["sudo su ubuntu -c \"cd ~/wordpress_server && sudo docker compose pull && sudo docker compose up -d\""]' \
+            --output text \
+            --query "Command.CommandId")
+          
+          echo "Command ID: ${COMMAND_ID}"
+          
+          # Wait for command to complete
+          echo "Waiting for command to complete..."
+          aws ssm wait command-executed \
+            --region "${AWS_REGION}" \
+            --command-id "${COMMAND_ID}" \
+            --instance-id "${SSM_TARGET}"
+          
+          # Get command output
+          echo "Command output:"
+          aws ssm get-command-invocation \
+            --region "${AWS_REGION}" \
+            --command-id "${COMMAND_ID}" \
+            --instance-id "${SSM_TARGET}" \
+            --query "StandardOutputContent" \
+            --output text
+          
+          # Check exit status
+          EXIT_CODE=$(aws ssm get-command-invocation \
+            --region "${AWS_REGION}" \
+            --command-id "${COMMAND_ID}" \
+            --instance-id "${SSM_TARGET}" \
+            --query "ResponseCode" \
+            --output text)
+          
+          if [ "${EXIT_CODE}" != "0" ]; then
+            echo "Command failed with exit code: ${EXIT_CODE}"
+            aws ssm get-command-invocation \
+              --region "${AWS_REGION}" \
+              --command-id "${COMMAND_ID}" \
+              --instance-id "${SSM_TARGET}" \
+              --query "StandardErrorContent" \
+              --output text
+            exit 1
+          fi
+          
+          echo "Command completed successfully!"
+      
+      - name: Cleanup AWS credentials
+        if: always()
+        run: |
+          # Remove credential files for security (runner is ephemeral, but good practice)
+          rm -f ~/.aws/credentials ~/.aws/config
+          echo "Credentials cleaned up"
+
