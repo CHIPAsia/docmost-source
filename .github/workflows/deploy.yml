@@ -1,4 +1,4 @@
-name: AWS SSM Session
+name: Deploy
 
 on:
   workflow_dispatch:
