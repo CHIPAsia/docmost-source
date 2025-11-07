@@ -20,6 +20,8 @@ import { useTranslation } from "react-i18next";
 import SsoLogin from "@/ee/components/sso-login.tsx";
 import { useWorkspacePublicDataQuery } from "@/features/workspace/queries/workspace-query.ts";
 import { Error404 } from "@/components/ui/error-404.tsx";
+import chipLogo from '@/assets/Gradient Primary.svg';
+
 import React from "react";
 
 const formSchema = z.object({
@@ -65,7 +67,7 @@ export function LoginForm() {
     <Container size={420} className={classes.container}>
       <Box p="xl" className={classes.containerBox}>
         <Title order={2} ta="center" fw={500} mb="md">
-          {t("Login")}
+          <img className="text-center" alt="editor" src={chipLogo} width="50%" />
         </Title>
 
         <SsoLogin />
