@@ -53,7 +53,7 @@ export default function SpaceGrid() {
     <>
       <Group justify="space-between" align="center" mb="md">
         <Text fz="sm" fw={500}>
-          {t("Spaces you belong to")}
+          {t("Spaces you belong to:")}
         </Text>
       </Group>
 
