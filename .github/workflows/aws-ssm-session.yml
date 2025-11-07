@@ -35,17 +35,24 @@ jobs:
           echo "ARCH=${ARCH}" >> $GITHUB_OUTPUT
           echo "Detected architecture: ${ARCH}"
 
-      - name: Install AWS CLI
+      - name: Install AWS CLI (if not already installed)
         run: |
-          ARCH="${{ steps.arch.outputs.ARCH }}"
-          if [ "$ARCH" = "aarch64" ] || [ "$ARCH" = "arm64" ]; then
-            curl "https://awscli.amazonaws.com/awscli-exe-linux-aarch64.zip" -o "awscliv2.zip"
+          # Check if AWS CLI is already installed
+          if command -v aws &> /dev/null; then
+            echo "AWS CLI is already installed, using existing installation..."
+            aws --version
           else
-            curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+            echo "AWS CLI not found, installing..."
+            ARCH="${{ steps.arch.outputs.ARCH }}"
+            if [ "$ARCH" = "aarch64" ] || [ "$ARCH" = "arm64" ]; then
+              curl "https://awscli.amazonaws.com/awscli-exe-linux-aarch64.zip" -o "awscliv2.zip"
+            else
+              curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+            fi
+            unzip awscliv2.zip
+            sudo ./aws/install
+            aws --version
           fi
-          unzip awscliv2.zip
-          sudo ./aws/install
-          aws --version
 
       - name: Install AWS Session Manager plugin
         run: |
