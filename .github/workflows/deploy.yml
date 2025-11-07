@@ -87,7 +87,7 @@ jobs:
             --region "${AWS_REGION}" \
             --instance-ids "${SSM_TARGET}" \
             --document-name "AWS-RunShellScript" \
-            --parameters 'commands=["sudo su ubuntu -c \"cd ~/wordpress_server && sudo docker compose pull && sudo docker compose up -d\""]' \
+            --parameters "{\"commands\":[\"sudo su ubuntu -c 'cd ~/wordpress_server && sudo docker compose pull && sudo docker compose up -d'\"]}" \
             --output text \
             --query "Command.CommandId")
           
