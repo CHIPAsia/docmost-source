@@ -77,17 +77,29 @@ jobs:
             session-manager-plugin --version
           fi
 
+      - name: Set GHCR token
+        id: ghcr_token
+        run: |
+          if [ -n "${{ secrets.GHCR_PAT }}" ]; then
+            echo "token=${{ secrets.GHCR_PAT }}" >> $GITHUB_OUTPUT
+          else
+            echo "token=${{ secrets.GITHUB_TOKEN }}" >> $GITHUB_OUTPUT
+          fi
+
       - name: Execute commands via SSM
         env:
           AWS_REGION: ${{ secrets.AWS_REGION }}
           SSM_TARGET: ${{ secrets.SSM_TARGET }}
+          GHCR_TOKEN: ${{ steps.ghcr_token.outputs.token }}
         run: |
           # Execute commands on the remote instance
+          # First authenticate with GHCR, then pull and start containers
           COMMAND_ID=$(aws ssm send-command \
             --region "${AWS_REGION}" \
             --instance-ids "${SSM_TARGET}" \
             --document-name "AWS-RunShellScript" \
-            --parameters 'commands=["sudo su ubuntu -c \"cd ~/docmost && sudo docker compose pull && sudo docker compose up -d\""]' \
+            --parameters "commands=[\"export GHCR_TOKEN='${GHCR_TOKEN}' && sudo su ubuntu -c \\\"cd ~/docmost && echo \\\\\${GHCR_TOKEN} | sudo docker login ghcr.io -u ${{ github.actor }} --password-stdin && sudo docker compose pull && sudo docker compose up -d\\\"\"]" \
+            --parameters "executionTimeout=[\"3600\"]" \
             --output text \
             --query "Command.CommandId")
           
