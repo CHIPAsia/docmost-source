@@ -1,6 +1,6 @@
 services:
   docmost:
-    image: wzul/docmost-chip:latest
+    image: ghcr.io/chipasia/docmost-source:latest
     container_name: docmost-app
     restart: unless-stopped
     ports:

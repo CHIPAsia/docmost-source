@@ -9,15 +9,19 @@ on:
 jobs:
   build_and_push:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Log in to Docker Hub
+      - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       # - name: Set up QEMU
         # QEMU enables emulation for multi-platform builds
@@ -32,5 +36,5 @@ jobs:
         with:
           context: . # Directory of the Dockerfile (defaults to repo root)
           push: ${{ github.event_name != 'pull_request' }} # Only push on 'push' event
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/${{ secrets.DOCKERHUB_REPO }}:latest
+          tags: ghcr.io/${{ github.repository }}:latest
           platforms: linux/amd64,linux/arm64
