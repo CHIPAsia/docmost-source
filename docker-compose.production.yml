@@ -54,7 +54,11 @@ services:
       - ./nginx/nginx.conf:/etc/nginx/templates/nginx.conf.template:ro
       - ./nginx/ssl:/etc/nginx/ssl:ro
       - nginx_logs:/var/log/nginx
-    command: /bin/sh -c "export DOMAIN_NAME=$$(echo $$APP_URL | sed 's|https\\?://||' | cut -d/ -f1 | cut -d: -f1) && envsubst '$$APP_URL $$DOMAIN_NAME' < /etc/nginx/templates/nginx.conf.template > /etc/nginx/nginx.conf && nginx -g 'daemon off;'"
+    command:
+      - /bin/sh
+      - -c
+      - |
+        export DOMAIN_NAME=$$(echo $$APP_URL | sed 's|https\\?://||' | cut -d/ -f1 | cut -d: -f1) && envsubst '$$APP_URL $$DOMAIN_NAME' < /etc/nginx/templates/nginx.conf.template > /etc/nginx/nginx.conf && nginx -g 'daemon off;'
     depends_on:
       - docmost
     networks:
