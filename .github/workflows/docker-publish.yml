@@ -23,9 +23,9 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # - name: Set up QEMU
+      - name: Set up QEMU
         # QEMU enables emulation for multi-platform builds
-        # uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
         # Buildx is a Docker component that enables multi-platform builds
