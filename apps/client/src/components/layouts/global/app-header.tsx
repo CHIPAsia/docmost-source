@@ -1,5 +1,6 @@
 import { Badge, Group, Text, Tooltip } from "@mantine/core";
 import classes from "./app-header.module.css";
+import React from "react";
 import TopMenu from "@/components/layouts/global/top-menu.tsx";
 import { Link } from "react-router-dom";
 import APP_ROUTE from "@/lib/app-route.ts";
@@ -14,8 +15,6 @@ import SidebarToggle from "@/components/ui/sidebar-toggle-button.tsx";
 import { useTranslation } from "react-i18next";
 import useTrial from "@/ee/hooks/use-trial.tsx";
 import { isCloud } from "@/lib/config.ts";
-
-
 import {
   SearchControl,
   SearchMobileControl,

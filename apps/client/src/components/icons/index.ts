@@ -8,3 +8,4 @@ export { GoogleSheetsIcon } from "./google-sheets-icon.tsx";
 export { FramerIcon } from "./framer-icon.tsx";
 export { LoomIcon } from "./loom-icon.tsx";
 export { YoutubeIcon } from "./youtube-icon.tsx";
+
