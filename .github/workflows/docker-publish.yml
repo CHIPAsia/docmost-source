@@ -1,10 +1,7 @@
 name: Docker Image CI
 
 on:
-  push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
+  workflow_dispatch:
 
 jobs:
   build_and_push:
@@ -41,6 +38,6 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: . # Directory of the Dockerfile (defaults to repo root)
-          push: ${{ github.event_name != 'pull_request' }} # Only push on 'push' event
+          push: true
           tags: ${{ steps.meta.outputs.image }}
           platforms: linux/amd64,linux/arm64
