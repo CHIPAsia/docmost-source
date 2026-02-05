@@ -24,6 +24,7 @@ import { MigrationService } from '@docmost/db/services/migration.service';
 import { UserTokenRepo } from './repos/user-token/user-token.repo';
 import { BacklinkRepo } from '@docmost/db/repos/backlink/backlink.repo';
 import { ShareRepo } from '@docmost/db/repos/share/share.repo';
+import { UserMfaRepo } from '@docmost/db/repos/user-mfa/user-mfa.repo';
 import { PageListener } from '@docmost/db/listeners/page.listener';
 import { PostgresJSDialect } from 'kysely-postgres-js';
 import * as postgres from 'postgres';
@@ -80,6 +81,7 @@ import { normalizePostgresUrl } from '../common/helpers';
     UserTokenRepo,
     BacklinkRepo,
     ShareRepo,
+    UserMfaRepo,
     PageListener,
   ],
   exports: [
@@ -96,6 +98,7 @@ import { normalizePostgresUrl } from '../common/helpers';
     UserTokenRepo,
     BacklinkRepo,
     ShareRepo,
+    UserMfaRepo,
   ],
 })
 export class DatabaseModule
