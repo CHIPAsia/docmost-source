@@ -213,7 +213,9 @@ export function useAdminDisableMfaMutation() {
   const queryClient = useQueryClient();
 
   return useMutation<void, Error, { userId: string }>({
-    mutationFn: ({ userId }) => adminDisableMfa(userId),
+    mutationFn: async ({ userId }) => {
+      await adminDisableMfa(userId);
+    },
     onSuccess: (data, variables) => {
       notifications.show({ message: "2FA disabled successfully" });
       queryClient.invalidateQueries({ queryKey: ["members-mfa-status"] });
