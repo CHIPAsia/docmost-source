@@ -1,8 +1,10 @@
 import {
   Body,
   Controller,
+  ForbiddenException,
   HttpCode,
   HttpStatus,
+  Param,
   Post,
   Req,
   Res,
@@ -22,12 +24,19 @@ import { MfaEnableDto } from './dto/mfa-enable.dto';
 import { MfaVerifyDto } from './dto/mfa-verify.dto';
 import { MfaDisableDto } from './dto/mfa-disable.dto';
 import { MfaGenerateBackupCodesDto } from './dto/mfa-generate-backup-codes.dto';
+import WorkspaceAbilityFactory from '../casl/abilities/workspace-ability.factory';
+import {
+  WorkspaceCaslAction,
+  WorkspaceCaslSubject,
+} from '../casl/interfaces/workspace-ability.type';
+import { UserRole } from '../../common/helpers/types/permission';
 
 @Controller('mfa')
 export class MfaController {
   constructor(
     private mfaService: MfaService,
     private environmentService: EnvironmentService,
+    private workspaceAbility: WorkspaceAbilityFactory,
   ) {}
 
   @UseGuards(JwtAuthGuard)
@@ -127,5 +136,56 @@ export class MfaController {
     },
   ) {
     return this.mfaService.validateAccess(req.user, req.user.tokenType);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @Post('admin/status/:userId')
+  async getAdminStatus(
+    @AuthUser() user: User,
+    @AuthWorkspace() workspace: Workspace,
+    @Param('userId') targetUserId: string,
+  ) {
+    const ability = this.workspaceAbility.createForUser(user, workspace);
+    if (
+      ability.cannot(WorkspaceCaslAction.Manage, WorkspaceCaslSubject.Member)
+    ) {
+      throw new ForbiddenException();
+    }
+    return this.mfaService.getStatusForUser(targetUserId, workspace.id);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @Post('admin/disable/:userId')
+  async adminDisable(
+    @AuthUser() user: User,
+    @AuthWorkspace() workspace: Workspace,
+    @Param('userId') targetUserId: string,
+  ) {
+    // Only owners can disable 2FA for other members (e.g. when they lose their device)
+    if (user.role !== UserRole.OWNER) {
+      throw new ForbiddenException(
+        'Only workspace owners can disable 2FA for other members',
+      );
+    }
+    await this.mfaService.adminDisable(targetUserId, workspace.id);
+    return { success: true };
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @Post('admin/members-status')
+  async getMembersMfaStatus(
+    @AuthUser() user: User,
+    @AuthWorkspace() workspace: Workspace,
+  ) {
+    const ability = this.workspaceAbility.createForUser(user, workspace);
+    if (
+      ability.cannot(WorkspaceCaslAction.Read, WorkspaceCaslSubject.Member)
+    ) {
+      throw new ForbiddenException();
+    }
+    return this.mfaService.getMembersMfaStatus(workspace.id);
   }
 }

@@ -286,6 +286,42 @@ export class MfaService {
     return { backupCodes };
   }
 
+  async getStatusForUser(
+    targetUserId: string,
+    workspaceId: string,
+  ): Promise<{ isEnabled: boolean; method: string | null; backupCodesCount: number }> {
+    const mfa = await this.userMfaRepo.findByUserId(targetUserId, workspaceId);
+
+    if (!mfa) {
+      return {
+        isEnabled: false,
+        method: null,
+        backupCodesCount: 0,
+      };
+    }
+
+    return {
+      isEnabled: mfa.isEnabled ?? false,
+      method: mfa.method,
+      backupCodesCount: mfa.backupCodes?.length ?? 0,
+    };
+  }
+
+  async adminDisable(targetUserId: string, workspaceId: string): Promise<void> {
+    await this.userMfaRepo.deleteByUserId(targetUserId, workspaceId);
+  }
+
+  async getMembersMfaStatus(
+    workspaceId: string,
+  ): Promise<Record<string, { isEnabled: boolean }>> {
+    const rows = await this.userMfaRepo.findByWorkspaceId(workspaceId);
+    const result: Record<string, { isEnabled: boolean }> = {};
+    for (const row of rows) {
+      result[row.userId] = { isEnabled: row.isEnabled ?? false };
+    }
+    return result;
+  }
+
   async validateAccess(
     user: { user: User; workspace: Workspace },
     tokenType: string,

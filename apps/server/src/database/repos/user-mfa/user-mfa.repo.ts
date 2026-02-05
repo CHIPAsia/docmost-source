@@ -67,4 +67,16 @@ export class UserMfaRepo {
       .execute();
   }
 
+  async findByWorkspaceId(
+    workspaceId: string,
+    trx?: KyselyTransaction,
+  ): Promise<Array<{ userId: string; isEnabled: boolean | null }>> {
+    const db = dbOrTx(this.db, trx);
+    const rows = await db
+      .selectFrom('userMfa')
+      .select(['userId', 'isEnabled'])
+      .where('workspaceId', '=', workspaceId)
+      .execute();
+    return rows;
+  }
 }
