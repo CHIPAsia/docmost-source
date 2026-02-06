@@ -1,18 +1,23 @@
 import { Menu, ActionIcon, Text } from "@mantine/core";
 import React from "react";
-import { IconDots, IconTrash } from "@tabler/icons-react";
+import { IconDots, IconShieldOff, IconTrash } from "@tabler/icons-react";
 import { modals } from "@mantine/modals";
-import { useDeleteWorkspaceMemberMutation } from "@/features/workspace/queries/workspace-query.ts";
+import {
+  useDeleteWorkspaceMemberMutation,
+  useAdminDisableMfaMutation,
+} from "@/features/workspace/queries/workspace-query.ts";
 import { useTranslation } from "react-i18next";
 import useUserRole from "@/hooks/use-user-role.tsx";
 
 interface Props {
   userId: string;
+  mfaEnabled?: boolean;
 }
-export default function MemberActionMenu({ userId }: Props) {
+export default function MemberActionMenu({ userId, mfaEnabled = false }: Props) {
   const { t } = useTranslation();
   const deleteWorkspaceMemberMutation = useDeleteWorkspaceMemberMutation();
-  const { isAdmin } = useUserRole();
+  const adminDisableMfaMutation = useAdminDisableMfaMutation();
+  const { isAdmin, isOwner } = useUserRole();
 
   const onRevoke = async () => {
     await deleteWorkspaceMemberMutation.mutateAsync({ userId });
@@ -34,6 +39,26 @@ export default function MemberActionMenu({ userId }: Props) {
       onConfirm: onRevoke,
     });
 
+  const onDisableMfa = async () => {
+    await adminDisableMfaMutation.mutateAsync({ userId });
+  };
+
+  const openDisableMfaModal = () =>
+    modals.openConfirmModal({
+      title: t("Disable 2FA"),
+      children: (
+        <Text size="sm">
+          {t(
+            "Are you sure you want to disable two-factor authentication for this user? They will need to set it up again to re-enable.",
+          )}
+        </Text>
+      ),
+      centered: true,
+      labels: { confirm: t("Disable 2FA"), cancel: t("Cancel") },
+      confirmProps: { color: "orange" },
+      onConfirm: onDisableMfa,
+    });
+
   return (
     <>
       <Menu
@@ -51,6 +76,14 @@ export default function MemberActionMenu({ userId }: Props) {
         </Menu.Target>
 
         <Menu.Dropdown>
+          {mfaEnabled && isOwner && (
+            <Menu.Item
+              onClick={openDisableMfaModal}
+              leftSection={<IconShieldOff size={16} />}
+            >
+              {t("Disable 2FA")}
+            </Menu.Item>
+          )}
           <Menu.Item
             c="red"
             onClick={openRevokeModal}

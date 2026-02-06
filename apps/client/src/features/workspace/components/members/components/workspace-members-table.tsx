@@ -2,6 +2,7 @@ import { Group, Table, Text, Badge } from "@mantine/core";
 import {
   useChangeMemberRoleMutation,
   useWorkspaceMembersQuery,
+  useMembersMfaStatusQuery,
 } from "@/features/workspace/queries/workspace-query.ts";
 import { CustomAvatar } from "@/components/ui/custom-avatar.tsx";
 import React from "react";
@@ -27,6 +28,7 @@ export default function WorkspaceMembersTable() {
     limit: 100,
     query: search,
   });
+  const { data: mfaStatusMap } = useMembersMfaStatusQuery(true);
   const changeMemberRoleMutation = useChangeMemberRoleMutation();
   const { isAdmin, isOwner } = useUserRole();
 
@@ -60,6 +62,7 @@ export default function WorkspaceMembersTable() {
             <Table.Tr>
               <Table.Th>{t("User")}</Table.Th>
               <Table.Th>{t("Status")}</Table.Th>
+              <Table.Th>{t("2FA")}</Table.Th>
               <Table.Th>{t("Role")}</Table.Th>
             </Table.Tr>
           </Table.Thead>
@@ -88,6 +91,18 @@ export default function WorkspaceMembersTable() {
                     <Badge variant="light">{t("Active")}</Badge>
                   </Table.Td>
                   <Table.Td>
+                    <Badge
+                      variant="light"
+                      color={
+                        mfaStatusMap?.[user.id]?.isEnabled ? "green" : "gray"
+                      }
+                    >
+                      {mfaStatusMap?.[user.id]?.isEnabled
+                        ? t("2FA enabled")
+                        : t("2FA disabled")}
+                    </Badge>
+                  </Table.Td>
+                  <Table.Td>
                     <RoleSelectMenu
                       roles={assignableUserRoles}
                       roleName={getUserRoleLabel(user.role)}
@@ -98,12 +113,17 @@ export default function WorkspaceMembersTable() {
                     />
                   </Table.Td>
                   <Table.Td>
-                    {isAdmin && <MemberActionMenu userId={user.id} />}
+                    {isAdmin && (
+                      <MemberActionMenu
+                        userId={user.id}
+                        mfaEnabled={mfaStatusMap?.[user.id]?.isEnabled ?? false}
+                      />
+                    )}
                   </Table.Td>
                 </Table.Tr>
               ))
             ) : (
-              <NoTableResults colSpan={3} />
+              <NoTableResults colSpan={5} />
             )}
           </Table.Tbody>
         </Table>

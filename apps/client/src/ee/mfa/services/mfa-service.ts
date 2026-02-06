@@ -59,3 +59,22 @@ export async function validateMfaAccess(): Promise<MfaAccessValidationResponse> 
     return { valid: false };
   }
 }
+
+export type MembersMfaStatusResponse = Record<
+  string,
+  { isEnabled: boolean }
+>;
+
+export async function getMembersMfaStatus(): Promise<MembersMfaStatusResponse> {
+  const res = await api.post<MembersMfaStatusResponse>(
+    "/mfa/admin/members-status",
+  );
+  return (res as unknown) as MembersMfaStatusResponse;
+}
+
+export async function adminDisableMfa(userId: string): Promise<{ success: boolean }> {
+  const res = await api.post<{ success: boolean }>(
+    `/mfa/admin/disable/${userId}`,
+  );
+  return (res as unknown) as { success: boolean };
+}

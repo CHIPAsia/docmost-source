@@ -18,6 +18,11 @@ import {
   getAppVersion,
   deleteWorkspaceMember,
 } from "@/features/workspace/services/workspace-service";
+import {
+  getMembersMfaStatus,
+  adminDisableMfa,
+  MembersMfaStatusResponse,
+} from "@/ee/mfa/services/mfa-service";
 import { IPagination, QueryParams } from "@/lib/types.ts";
 import { notifications } from "@mantine/notifications";
 import {
@@ -190,5 +195,35 @@ export function useAppVersion(
     staleTime: 60 * 60 * 1000, // 1 hr
     enabled: isEnabled,
     refetchOnMount: true,
+  });
+}
+
+export function useMembersMfaStatusQuery(
+  enabled: boolean,
+): UseQueryResult<MembersMfaStatusResponse, Error> {
+  return useQuery({
+    queryKey: ["members-mfa-status"],
+    queryFn: () => getMembersMfaStatus(),
+    enabled,
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+export function useAdminDisableMfaMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation<void, Error, { userId: string }>({
+    mutationFn: async ({ userId }) => {
+      await adminDisableMfa(userId);
+    },
+    onSuccess: (data, variables) => {
+      notifications.show({ message: "2FA disabled successfully" });
+      queryClient.invalidateQueries({ queryKey: ["members-mfa-status"] });
+      queryClient.invalidateQueries({ queryKey: ["workspaceMembers"] });
+    },
+    onError: (error) => {
+      const errorMessage = error["response"]?.data?.message;
+      notifications.show({ message: errorMessage, color: "red" });
+    },
   });
 }

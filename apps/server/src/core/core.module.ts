@@ -16,11 +16,13 @@ import { GroupModule } from './group/group.module';
 import { CaslModule } from './casl/casl.module';
 import { DomainMiddleware } from '../common/middlewares/domain.middleware';
 import { ShareModule } from './share/share.module';
+import { MfaModule } from './mfa/mfa.module';
 
 @Module({
   imports: [
     UserModule,
     AuthModule,
+    MfaModule,
     WorkspaceModule,
     PageModule,
     AttachmentModule,

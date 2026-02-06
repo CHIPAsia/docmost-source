@@ -6,7 +6,6 @@ import {
   Post,
   Res,
   UseGuards,
-  Logger,
 } from '@nestjs/common';
 import { LoginDto } from './dto/login.dto';
 import { AuthService } from './services/auth.service';
@@ -23,16 +22,16 @@ import { PasswordResetDto } from './dto/password-reset.dto';
 import { VerifyUserTokenDto } from './dto/verify-user-token.dto';
 import { FastifyReply } from 'fastify';
 import { validateSsoEnforcement } from './auth.util';
-import { ModuleRef } from '@nestjs/core';
+import { MfaService } from '../mfa/mfa.service';
+import { TokenService } from './services/token.service';
 
 @Controller('auth')
 export class AuthController {
-  private readonly logger = new Logger(AuthController.name);
-
   constructor(
     private authService: AuthService,
     private environmentService: EnvironmentService,
-    private moduleRef: ModuleRef,
+    private mfaService: MfaService,
+    private tokenService: TokenService,
   ) {}
 
   @HttpCode(HttpStatus.OK)
@@ -44,42 +43,28 @@ export class AuthController {
   ) {
     validateSsoEnforcement(workspace);
 
-    let MfaModule: any;
-    let isMfaModuleReady = false;
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      MfaModule = require('./../../ee/mfa/services/mfa.service');
-      isMfaModuleReady = true;
-    } catch (err) {
-      this.logger.debug(
-        'MFA module requested but EE module not bundled in this build',
-      );
-      isMfaModuleReady = false;
-    }
-    if (isMfaModuleReady) {
-      const mfaService = this.moduleRef.get(MfaModule.MfaService, {
-        strict: false,
-      });
+    const mfaResult = await this.mfaService.checkMfaRequirements(
+      loginInput.email,
+      loginInput.password,
+      workspace,
+    );
 
-      const mfaResult = await mfaService.checkMfaRequirements(
-        loginInput,
-        workspace,
-        res,
-      );
-
-      if (mfaResult) {
-        // If user has MFA enabled OR workspace enforces MFA, require MFA verification
-        if (mfaResult.userHasMfa || mfaResult.requiresMfaSetup) {
-          return {
-            userHasMfa: mfaResult.userHasMfa,
-            requiresMfaSetup: mfaResult.requiresMfaSetup,
-            isMfaEnforced: mfaResult.isMfaEnforced,
-          };
-        } else if (mfaResult.authToken) {
-          // User doesn't have MFA and workspace doesn't require it
-          this.setAuthCookie(res, mfaResult.authToken);
-          return;
-        }
+    if (mfaResult) {
+      if (mfaResult.userHasMfa || mfaResult.requiresMfaSetup) {
+        const mfaToken = await this.tokenService.generateMfaToken(
+          mfaResult.user!,
+          workspace.id,
+        );
+        this.setMfaCookie(res, mfaToken);
+        return {
+          userHasMfa: mfaResult.userHasMfa,
+          requiresMfaSetup: mfaResult.requiresMfaSetup,
+          isMfaEnforced: mfaResult.isMfaEnforced,
+        };
+      }
+      if (mfaResult.authToken) {
+        this.setAuthCookie(res, mfaResult.authToken);
+        return;
       }
     }
 
@@ -178,6 +163,16 @@ export class AuthController {
       httpOnly: true,
       path: '/',
       expires: this.environmentService.getCookieExpiresIn(),
+      secure: this.environmentService.isHttps(),
+    });
+  }
+
+  setMfaCookie(res: FastifyReply, token: string) {
+    const expires = new Date(Date.now() + 5 * 60 * 1000);
+    res.setCookie('authToken', token, {
+      httpOnly: true,
+      path: '/',
+      expires,
       secure: this.environmentService.isHttps(),
     });
   }
