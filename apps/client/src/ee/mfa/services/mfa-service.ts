@@ -66,11 +66,10 @@ export type MembersMfaStatusResponse = Record<
 >;
 
 export async function getMembersMfaStatus(): Promise<MembersMfaStatusResponse> {
-  const res = await api.post<{ data?: MembersMfaStatusResponse }>(
-    "/mfa/admin/members-status",
-  );
+  const res = (await api.post("/mfa/admin/members-status")) as unknown;
   // Backend wraps response in { data, success, status } - extract the inner data
-  return (res as { data?: MembersMfaStatusResponse })?.data ?? (res as MembersMfaStatusResponse);
+  const wrapped = res as { data?: MembersMfaStatusResponse };
+  return wrapped?.data ?? (res as MembersMfaStatusResponse);
 }
 
 export async function adminDisableMfa(userId: string): Promise<{ success: boolean }> {
