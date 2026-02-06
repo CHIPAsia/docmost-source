@@ -205,7 +205,7 @@ export function useMembersMfaStatusQuery(
     queryKey: ["members-mfa-status"],
     queryFn: () => getMembersMfaStatus(),
     enabled,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 60 * 1000, // 1 min - MFA status can change via admin disable
   });
 }
 

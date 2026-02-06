@@ -7,6 +7,7 @@ import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types';
 import { dbOrTx } from '@docmost/db/utils';
 import { Injectable } from '@nestjs/common';
 import { InjectKysely } from 'nestjs-kysely';
+import { sql } from 'kysely';
 
 @Injectable()
 export class UserMfaRepo {
@@ -72,16 +73,24 @@ export class UserMfaRepo {
     trx?: KyselyTransaction,
   ): Promise<Array<{ userId: string; isEnabled: boolean | null }>> {
     const db = dbOrTx(this.db, trx);
-    // Join with users to get MFA status for workspace members.
-    // user_mfa has unique constraint on user_id only, so one user has one MFA record.
-    // We match by workspace members (users.workspace_id) rather than user_mfa.workspace_id,
-    // since the MFA record's workspace_id may differ from the viewed workspace.
+    // Same email can have different user records per workspace (users_email_workspace_id_unique).
+    // user_mfa is unique on user_id only, so MFA may be tied to a different workspace's user.
+    // Match by email: if any user with same email has MFA enabled, show enabled for this member.
     const rows = await db
-      .selectFrom('userMfa')
-      .innerJoin('users', 'users.id', 'userMfa.userId')
-      .select(['userMfa.userId', 'userMfa.isEnabled'])
+      .selectFrom('users')
+      .select([
+        'users.id as userId',
+        sql<boolean>`EXISTS (
+          SELECT 1 FROM users u2
+          INNER JOIN user_mfa m ON m.user_id = u2.id
+          WHERE u2.email = users.email AND m.is_enabled = true
+        )`.as('isEnabled'),
+      ])
       .where('users.workspaceId', '=', workspaceId)
       .execute();
-    return rows;
+    return rows.map((r) => ({
+      userId: r.userId,
+      isEnabled: r.isEnabled ?? false,
+    }));
   }
 }
