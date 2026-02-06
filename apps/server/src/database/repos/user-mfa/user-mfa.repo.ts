@@ -72,10 +72,15 @@ export class UserMfaRepo {
     trx?: KyselyTransaction,
   ): Promise<Array<{ userId: string; isEnabled: boolean | null }>> {
     const db = dbOrTx(this.db, trx);
+    // Join with users to get MFA status for workspace members.
+    // user_mfa has unique constraint on user_id only, so one user has one MFA record.
+    // We match by workspace members (users.workspace_id) rather than user_mfa.workspace_id,
+    // since the MFA record's workspace_id may differ from the viewed workspace.
     const rows = await db
       .selectFrom('userMfa')
-      .select(['userId', 'isEnabled'])
-      .where('workspaceId', '=', workspaceId)
+      .innerJoin('users', 'users.id', 'userMfa.userId')
+      .select(['userMfa.userId', 'userMfa.isEnabled'])
+      .where('users.workspaceId', '=', workspaceId)
       .execute();
     return rows;
   }
