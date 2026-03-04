@@ -3,6 +3,7 @@ import {
   Controller,
   HttpCode,
   HttpStatus,
+  Inject,
   Post,
   Res,
   UseGuards,
@@ -24,6 +25,11 @@ import { FastifyReply } from 'fastify';
 import { validateSsoEnforcement } from './auth.util';
 import { MfaService } from '../mfa/mfa.service';
 import { TokenService } from './services/token.service';
+import { AuditEvent, AuditResource } from '../../common/events/audit-events';
+import {
+  AUDIT_SERVICE,
+  IAuditService,
+} from '../../integrations/audit/audit.service';
 
 @Controller('auth')
 export class AuthController {
@@ -32,6 +38,7 @@ export class AuthController {
     private environmentService: EnvironmentService,
     private mfaService: MfaService,
     private tokenService: TokenService,
+    @Inject(AUDIT_SERVICE) private readonly auditService: IAuditService,
   ) {}
 
   @HttpCode(HttpStatus.OK)
@@ -154,8 +161,17 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   @Post('logout')
-  async logout(@Res({ passthrough: true }) res: FastifyReply) {
+  async logout(
+    @AuthUser() user: User,
+    @Res({ passthrough: true }) res: FastifyReply,
+  ) {
     res.clearCookie('authToken');
+
+    this.auditService.log({
+      event: AuditEvent.USER_LOGOUT,
+      resourceType: AuditResource.USER,
+      resourceId: user.id,
+    });
   }
 
   setAuthCookie(res: FastifyReply, token: string) {

@@ -88,7 +88,13 @@ export default function WorkspaceMembersTable() {
                     </Group>
                   </Table.Td>
                   <Table.Td>
-                    <Badge variant="light">{t("Active")}</Badge>
+                    {user.deactivatedAt ? (
+                      <Badge variant="light" color="orange">
+                        {t("Deactivated")}
+                      </Badge>
+                    ) : (
+                      <Badge variant="light">{t("Active")}</Badge>
+                    )}
                   </Table.Td>
                   <Table.Td>
                     <Badge
@@ -103,20 +109,25 @@ export default function WorkspaceMembersTable() {
                     </Badge>
                   </Table.Td>
                   <Table.Td>
-                    <RoleSelectMenu
-                      roles={assignableUserRoles}
-                      roleName={getUserRoleLabel(user.role)}
-                      onChange={(newRole) =>
-                        handleRoleChange(user.id, user.role, newRole)
-                      }
-                      disabled={!isAdmin}
-                    />
+                    {isAdmin ? (
+                      <RoleSelectMenu
+                        roles={assignableUserRoles}
+                        roleName={getUserRoleLabel(user.role)}
+                        onChange={(newRole) =>
+                          handleRoleChange(user.id, user.role, newRole)
+                        }
+                        disabled={!isAdmin}
+                      />
+                    ) : (
+                      <Text fz="sm">{t(getUserRoleLabel(user.role))}</Text>
+                    )}
                   </Table.Td>
                   <Table.Td>
                     {isAdmin && (
                       <MemberActionMenu
                         userId={user.id}
                         mfaEnabled={mfaStatusMap?.[user.id]?.isEnabled ?? false}
+                        deactivatedAt={user.deactivatedAt}
                       />
                     )}
                   </Table.Td>

@@ -1,9 +1,17 @@
 import { Menu, ActionIcon, Text } from "@mantine/core";
 import React from "react";
-import { IconDots, IconShieldOff, IconTrash } from "@tabler/icons-react";
+import {
+  IconDots,
+  IconShieldOff,
+  IconTrash,
+  IconUserOff,
+  IconUserCheck,
+} from "@tabler/icons-react";
 import { modals } from "@mantine/modals";
 import {
   useDeleteWorkspaceMemberMutation,
+  useDeactivateWorkspaceMemberMutation,
+  useActivateWorkspaceMemberMutation,
   useAdminDisableMfaMutation,
 } from "@/features/workspace/queries/workspace-query.ts";
 import { useTranslation } from "react-i18next";
@@ -12,12 +20,50 @@ import useUserRole from "@/hooks/use-user-role.tsx";
 interface Props {
   userId: string;
   mfaEnabled?: boolean;
+  deactivatedAt: Date | null;
 }
-export default function MemberActionMenu({ userId, mfaEnabled = false }: Props) {
+export default function MemberActionMenu({
+  userId,
+  mfaEnabled = false,
+  deactivatedAt,
+}: Props) {
   const { t } = useTranslation();
   const deleteWorkspaceMemberMutation = useDeleteWorkspaceMemberMutation();
+  const deactivateMutation = useDeactivateWorkspaceMemberMutation();
+  const activateMutation = useActivateWorkspaceMemberMutation();
   const adminDisableMfaMutation = useAdminDisableMfaMutation();
   const { isAdmin, isOwner } = useUserRole();
+
+  const isDeactivated = !!deactivatedAt;
+
+  const onDeactivate = async () => {
+    await deactivateMutation.mutateAsync({ userId });
+  };
+
+  const onActivate = async () => {
+    await activateMutation.mutateAsync({ userId });
+  };
+
+  const openDeactivateModal = () =>
+    modals.openConfirmModal({
+      title: isDeactivated ? t("Activate member") : t("Deactivate member"),
+      children: (
+        <Text size="sm">
+          {isDeactivated
+            ? t("Are you sure you want to activate this workspace member?")
+            : t(
+                "Are you sure you want to deactivate this workspace member? They will no longer be able to access this workspace.",
+              )}
+        </Text>
+      ),
+      centered: true,
+      labels: {
+        confirm: isDeactivated ? t("Activate") : t("Deactivate"),
+        cancel: t("Cancel"),
+      },
+      confirmProps: { color: isDeactivated ? "blue" : "orange" },
+      onConfirm: isDeactivated ? onActivate : onDeactivate,
+    });
 
   const onRevoke = async () => {
     await deleteWorkspaceMemberMutation.mutateAsync({ userId });
@@ -84,6 +130,22 @@ export default function MemberActionMenu({ userId, mfaEnabled = false }: Props) 
               {t("Disable 2FA")}
             </Menu.Item>
           )}
+          <Menu.Item
+            onClick={openDeactivateModal}
+            leftSection={
+              isDeactivated ? (
+                <IconUserCheck size={16} />
+              ) : (
+                <IconUserOff size={16} />
+              )
+            }
+            disabled={!isAdmin}
+          >
+            {isDeactivated ? t("Activate member") : t("Deactivate member")}
+          </Menu.Item>
+
+          <Menu.Divider />
+
           <Menu.Item
             c="red"
             onClick={openRevokeModal}
