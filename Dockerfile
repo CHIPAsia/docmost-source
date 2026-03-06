@@ -7,9 +7,17 @@ FROM base AS builder
 
 WORKDIR /app
 
-COPY . .
+# Copy dependency manifests first (cache layer when only source changes)
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
+COPY apps/server/package.json apps/server/
+COPY apps/client/package.json apps/client/
+COPY packages/editor-ext/package.json packages/editor-ext/
 
 RUN pnpm install --frozen-lockfile
+
+# Copy source code (invalidates from here when any file changes)
+COPY . .
+
 RUN pnpm build
 
 FROM base AS installer
