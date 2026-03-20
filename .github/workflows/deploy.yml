@@ -88,7 +88,7 @@ jobs:
             --region "${AWS_REGION}" \
             --instance-ids "${SSM_TARGET}" \
             --document-name "AWS-RunShellScript" \
-            --parameters "commands=[\"cd ~/docmost && sudo IMAGE_TAG=${{ github.event.inputs.version }} docker compose pull && sudo IMAGE_TAG=${{ github.event.inputs.version }} docker compose up -d\"]" \
+            --parameters 'commands=["sudo su ubuntu -c \"cd ~/docmost && IMAGE_TAG=${{ github.event.inputs.version }} docker compose pull && IMAGE_TAG=${{ github.event.inputs.version }} docker compose up -d\""]' \
             --output text \
             --query "Command.CommandId")
           
