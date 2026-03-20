@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Group, Text, Button } from "@mantine/core";
+import { Group, Text, Button, Tooltip } from "@mantine/core";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { notifications } from "@mantine/notifications";
 import { useTranslation } from "react-i18next";
@@ -7,6 +7,9 @@ import { getMfaStatus } from "@/ee/mfa";
 import { MfaSetupModal } from "@/ee/mfa";
 import { MfaDisableModal } from "@/ee/mfa";
 import { MfaBackupCodesModal } from "@/ee/mfa";
+import { useHasFeature } from "@/ee/hooks/use-feature";
+import { Feature } from "@/ee/features";
+import { useUpgradeLabel } from "@/ee/hooks/use-upgrade-label";
 import { ResponsiveSettingsRow, ResponsiveSettingsContent, ResponsiveSettingsControl } from "@/components/ui/responsive-settings-row";
 
 export function MfaSettings() {
@@ -15,6 +18,8 @@ export function MfaSettings() {
   const [setupModalOpen, setSetupModalOpen] = useState(false);
   const [disableModalOpen, setDisableModalOpen] = useState(false);
   const [backupCodesModalOpen, setBackupCodesModalOpen] = useState(false);
+  const canUseMfa = useHasFeature(Feature.MFA);
+  const upgradeLabel = useUpgradeLabel();
 
   const { data: mfaStatus, isLoading } = useQuery({
     queryKey: ["mfa-status"],
@@ -63,13 +68,19 @@ export function MfaSettings() {
 
         <ResponsiveSettingsControl>
           {!isMfaEnabled ? (
-            <Button
-              variant="default"
-              onClick={() => setSetupModalOpen(true)}
-              style={{ whiteSpace: "nowrap" }}
+            <Tooltip
+              label={upgradeLabel}
+              disabled={canUseMfa}
             >
-              {t("Add 2FA method")}
-            </Button>
+              <Button
+                variant="default"
+                onClick={() => setSetupModalOpen(true)}
+                style={{ whiteSpace: "nowrap" }}
+                disabled={!canUseMfa}
+              >
+                {t("Add 2FA method")}
+              </Button>
+            </Tooltip>
           ) : (
             <Group gap="sm" wrap="nowrap">
               <Button

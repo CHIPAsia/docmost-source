@@ -69,6 +69,7 @@ async function bootstrap() {
         '/api/workspace/joined',
         '/api/mfa/verify',
         '/api/mfa/validate-access',
+        '/api/workspace/find-by-email',
       ];
 
       if (
