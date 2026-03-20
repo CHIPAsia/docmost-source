@@ -1,6 +1,6 @@
 services:
   docmost:
-    image: ghcr.io/chipasia/docmost-source:latest
+    image: ghcr.io/chipasia/docmost-source:${IMAGE_TAG:-latest}
     container_name: docmost-app
     restart: unless-stopped
     ports:
