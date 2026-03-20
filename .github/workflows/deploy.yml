@@ -131,30 +131,6 @@ jobs:
           
           echo "Command completed successfully!"
 
-      - name: Notify Chatwoot
-        if: success()
-        run: |
-          MESSAGE="🚀 *Deployment Success!*
-          *Project:* Docmost
-          *Repository:* ${{ github.repository }}
-          *Version:* ${{ github.event.inputs.version }}
-          *Trigger:* Manual Deploy"
-
-          curl --location "${{ vars.CHATWOOT_URL }}/api/v1/accounts/${{ vars.CHATWOOT_ACCOUNT_ID }}/conversations" \
-          --header "api_access_token: ${{ secrets.CHATWOOT_ACCESS_TOKEN }}" \
-          --header 'Content-Type: application/json' \
-          --data "{
-                    \"source_id\": \"${{ secrets.CHATWOOT_INBOX_TOKEN }}\",
-                    \"inbox_id\": ${{ vars.CHATWOOT_INBOX_ID }},
-                    \"contact_id\": ${{ vars.CHATWOOT_CONTACT_ID }},
-                    \"message\": {
-                      \"content\": \"$MESSAGE\",
-                      \"message_type\": \"outgoing\"
-                    }
-                  }"
-          
-          echo "Chatwoot notification sent!"
-      
       - name: Cleanup AWS credentials
         if: always()
         run: |
