@@ -130,6 +130,54 @@ jobs:
           fi
           
           echo "Command completed successfully!"
+
+      - name: Notify Chatwoot
+        if: success()
+        env:
+          CHATWOOT_URL: ${{ vars.CHATWOOT_URL }}
+          CHATWOOT_INBOX_TOKEN: ${{ secrets.CHATWOOT_INBOX_TOKEN }}
+          CHATWOOT_EMAIL: ${{ vars.CHATWOOT_EMAIL }}
+        run: |
+          # 1. Create/Identify a contact to get a source_id
+          CONTACT_RESP=$(curl -s -X POST "${CHATWOOT_URL}/public/api/v1/inboxes/${CHATWOOT_INBOX_TOKEN}/contacts" \
+            -H "Content-Type: application/json" \
+            -d "{\"name\": \"GHA Deploy Bot\", \"email\": \"${CHATWOOT_EMAIL}\", \"custom_attributes\": {\"repo\": \"${{ github.repository }}\"}}")
+          
+          SOURCE_ID=$(echo $CONTACT_RESP | jq -r '.source_id')
+          
+          if [ -z "$SOURCE_ID" ] || [ "$SOURCE_ID" == "null" ]; then
+            echo "Error: Failed to get Chatwoot Source ID. Response: $CONTACT_RESP"
+            exit 0 # Don't fail the whole deploy for a notification error
+          fi
+          
+          # 2. Create or find a conversation
+          CONV_RESP=$(curl -s -X POST "${CHATWOOT_URL}/public/api/v1/inboxes/${CHATWOOT_INBOX_TOKEN}/contacts/${SOURCE_ID}/conversations" \
+            -H "Content-Type: application/json")
+          
+          CONV_ID=$(echo $CONV_RESP | jq -r '.id')
+          
+          if [ -z "$CONV_ID" ] || [ "$CONV_ID" == "null" ]; then
+             # Try to see if there is an existing conversation
+             CONV_ID=$(echo $CONV_RESP | jq -r '.[0].id')
+          fi
+          
+          if [ -z "$CONV_ID" ] || [ "$CONV_ID" == "null" ]; then
+            echo "Error: Failed to get Chatwoot Conversation ID. Response: $CONV_RESP"
+            exit 0
+          fi
+          
+          # 3. Send the success message
+          MESSAGE="🚀 *Deployment Success!*
+          *Project:* Docmost
+          *Repository:* ${{ github.repository }}
+          *Version:* ${{ github.event.inputs.version }}
+          *Trigger:* Manual Deploy"
+          
+          curl -s -X POST "${CHATWOOT_URL}/public/api/v1/inboxes/${CHATWOOT_INBOX_TOKEN}/contacts/${SOURCE_ID}/conversations/${CONV_ID}/messages" \
+            -H "Content-Type: application/json" \
+            -d "{\"content\": \"$MESSAGE\"}"
+          
+          echo "Chatwoot notification sent!"
       
       - name: Cleanup AWS credentials
         if: always()
