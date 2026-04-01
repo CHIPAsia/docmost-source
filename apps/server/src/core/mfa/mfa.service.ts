@@ -10,7 +10,7 @@ import { UserMfaRepo } from '@docmost/db/repos/user-mfa/user-mfa.repo';
 import { UserRepo } from '@docmost/db/repos/user/user.repo';
 import { WorkspaceRepo } from '@docmost/db/repos/workspace/workspace.repo';
 import { TokenService } from '../auth/services/token.service';
-import { SessionService } from '../../session/session.service';
+import { SessionService } from '../session/session.service';
 import { comparePasswordHash } from '../../common/helpers';
 import { User, Workspace } from '@docmost/db/types/entity.types';
 
