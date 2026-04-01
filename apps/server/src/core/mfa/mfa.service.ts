@@ -10,6 +10,7 @@ import { UserMfaRepo } from '@docmost/db/repos/user-mfa/user-mfa.repo';
 import { UserRepo } from '@docmost/db/repos/user/user.repo';
 import { WorkspaceRepo } from '@docmost/db/repos/workspace/workspace.repo';
 import { TokenService } from '../auth/services/token.service';
+import { SessionService } from '../../session/session.service';
 import { comparePasswordHash } from '../../common/helpers';
 import { User, Workspace } from '@docmost/db/types/entity.types';
 
@@ -31,6 +32,7 @@ export class MfaService {
     private userRepo: UserRepo,
     private workspaceRepo: WorkspaceRepo,
     private tokenService: TokenService,
+    private sessionService: SessionService,
   ) {}
 
   async checkMfaRequirements(
@@ -78,7 +80,7 @@ export class MfaService {
       };
     }
 
-    const authToken = await this.tokenService.generateAccessToken(user);
+    const authToken = await this.sessionService.createSessionAndToken(user);
     return {
       userHasMfa: false,
       requiresMfaSetup: false,
@@ -250,7 +252,7 @@ export class MfaService {
       throw new UnauthorizedException();
     }
 
-    return this.tokenService.generateAccessToken(user);
+    return this.sessionService.createSessionAndToken(user);
   }
 
   async regenerateBackupCodes(
