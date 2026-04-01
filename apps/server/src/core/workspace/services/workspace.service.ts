@@ -7,6 +7,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { LicenseCheckService } from '../../../integrations/environment/license-check.service';
+import { UserSessionRepo } from '@docmost/db/repos/session/user-session.repo';
 import { CreateWorkspaceDto } from '../dto/create-workspace.dto';
 import { UpdateWorkspaceDto } from '../dto/update-workspace.dto';
 import { SpaceService } from '../../space/services/space.service';
@@ -17,6 +18,7 @@ import { WorkspaceRepo } from '@docmost/db/repos/workspace/workspace.repo';
 import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types';
 import { executeTx } from '@docmost/db/utils';
 import { InjectKysely } from 'nestjs-kysely';
+import { Feature } from '../../../common/features';
 import { User } from '@docmost/db/types/entity.types';
 import { GroupUserRepo } from '@docmost/db/repos/group/group-user.repo';
 import { GroupRepo } from '@docmost/db/repos/group/group.repo';
@@ -67,6 +69,7 @@ export class WorkspaceService {
     @InjectQueue(QueueName.BILLING_QUEUE) private billingQueue: Queue,
     @InjectQueue(QueueName.AI_QUEUE) private aiQueue: Queue,
     @Inject(AUDIT_SERVICE) private readonly auditService: IAuditService,
+    private userSessionRepo: UserSessionRepo,
   ) {}
 
   async findById(workspaceId: string) {
@@ -350,7 +353,7 @@ export class WorkspaceService {
         typeof updateWorkspaceDto.trashRetentionDays !== 'undefined' ||
         typeof updateWorkspaceDto.restrictApiToAdmins !== 'undefined'
       ) {
-        if (!this.licenseCheckService.hasFeature(ws.licenseKey, 'security:settings', ws.plan)) {
+        if (!this.licenseCheckService.hasFeature(ws.licenseKey, Feature.SECURITY_SETTINGS, ws.plan)) {
           throw new ForbiddenException(
             'This feature requires a valid license',
           );
@@ -667,11 +670,15 @@ export class WorkspaceService {
       }
     }
 
-    await this.userRepo.updateUser(
-      { deactivatedAt: new Date() },
-      userId,
-      workspaceId,
-    );
+    await executeTx(this.db, async (trx) => {
+      await this.userRepo.updateUser(
+        { deactivatedAt: new Date() },
+        userId,
+        workspaceId,
+        trx,
+      );
+      await this.userSessionRepo.revokeByUserId(userId, workspaceId, trx);
+    });
 
     this.auditService.log({
       event: AuditEvent.USER_DEACTIVATED,
@@ -785,6 +792,8 @@ export class WorkspaceService {
       await this.watcherRepo.deleteByUserAndWorkspace(userId, workspaceId, {
         trx,
       });
+
+      await this.userSessionRepo.revokeByUserId(userId, workspaceId, trx);
     });
 
     this.auditService.log({
