@@ -10,6 +10,10 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { SkipThrottle, ThrottlerGuard } from '@nestjs/throttler';
+import {
+  AI_CHAT_THROTTLER,
+  AUTH_THROTTLER,
+} from '../../integrations/throttle/throttler-names';
 import { LoginDto } from './dto/login.dto';
 import { AuthService } from './services/auth.service';
 import { SessionService } from '../session/session.service';
@@ -34,6 +38,7 @@ import {
   IAuditService,
 } from '../../integrations/audit/audit.service';
 
+@SkipThrottle({ [AI_CHAT_THROTTLER]: true })
 @UseGuards(ThrottlerGuard)
 @Controller('auth')
 export class AuthController {
@@ -98,7 +103,7 @@ export class AuthController {
     return workspace;
   }
 
-  @SkipThrottle()
+  @SkipThrottle({ [AUTH_THROTTLER]: true })
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   @Post('change-password')
@@ -161,7 +166,7 @@ export class AuthController {
     return this.authService.verifyUserToken(verifyUserTokenDto, workspace.id);
   }
 
-  @SkipThrottle()
+  @SkipThrottle({ [AUTH_THROTTLER]: true })
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   @Post('collab-token')
@@ -172,7 +177,7 @@ export class AuthController {
     return this.authService.getCollabToken(user, workspace.id);
   }
 
-  @SkipThrottle()
+  @SkipThrottle({ [AUTH_THROTTLER]: true })
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   @Post('logout')
