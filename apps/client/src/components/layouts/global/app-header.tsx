@@ -85,15 +85,16 @@ export function AppHeader() {
             />
           </Tooltip>
 
-          <Text
-            size="lg"
-            fw={600}
-            style={{ cursor: "pointer", userSelect: "none", display: 'flex', alignItems: 'center' }}
-            component={Link}
-            to="/home"
-          >
-            <img className="text-center" alt="editor" src={chipLogo} width="30%" />
-          </Text>
+          <Link to="/home" className={classes.brand} aria-label="Docmost">
+            <Box className={classes.brandIcon}>
+              <img
+                src={chipLogo}
+                alt="Docmost"
+                height={24}
+                style={{ width: "auto" }}
+              />
+            </Box>
+          </Link>
 
           <Group ml={50} gap={5} className={classes.links} visibleFrom="sm">
             {items}
